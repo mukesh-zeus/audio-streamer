@@ -4,11 +4,11 @@
     var AudioPlayer = function () {
 
         var audioDataJSON;
-
         this.streamStarted = false;
         this.suspended = false;
         this.playingBaseNTP;
         this.firstPacketNTP;
+        this.clientBufferSize;
 
         this.audioCtx;
         // Buffer source for audio context
@@ -77,14 +77,18 @@
     AudioPlayer.prototype.processAudio = function (audioProcessingEvent) {
 
         var audioDataJSON = this.getAudioData();
-        var time = (new Date()).getTime();
+
+        // var time = (new Date()).getTime();
+
         if (audioDataJSON.length > 0) {
             //console.log('audio processing');
-            var outputBuffer = audioProcessingEvent.outputBuffer;// same as buffer in decodeAudioData
-            var diff = Date.now() - this.playingBaseNTP;
-            var jsonDataLength = audioDataJSON.length;
-            var curPKT = [];
-            window.curPKT = curPKT;
+            var outputBuffer, diff, jsonDataLength, curPKT = [], outputData = [];
+
+            outputBuffer = audioProcessingEvent.outputBuffer;// same as buffer in decodeAudioData
+            diff = Date.now() - this.playingBaseNTP;
+            jsonDataLength = audioDataJSON.length;
+            curPKT = [];
+            // window.curPKT = curPKT;
             for (var i = 0; i < jsonDataLength; ++i) {
                 if (audioDataJSON[i].timeStamp > this.firstPacketNTP + diff) {
                     break;
@@ -92,36 +96,49 @@
                 curPKT.push(audioDataJSON[i]);
             }
 
-            var outputData = [];
             outputData[0] = outputBuffer.getChannelData(0);
             outputData[1] = outputBuffer.getChannelData(1);
 
             if (curPKT.length > 0) {
 
-                var bufferLength = Object.keys(curPKT[0].data[0]).length;
-                // var noOfChannels = Object.keys(curPKT[0].data).length;
+                var lengthOfPKT, sourceBufferLength, clientBuffer = [];
 
-                for (var curPKTIndex = 0; curPKTIndex < curPKT.length; ++curPKTIndex) {
-                    var inputData = curPKT[curPKTIndex].data[0];
-                    for (var bufferIndex = 0; bufferIndex < bufferLength; ++bufferIndex) {
-                        outputData[0][bufferIndex] = inputData[bufferIndex];
-                        outputData[1][bufferIndex] = inputData[bufferIndex];
+                lengthOfPKT = curPKT.length
+                sourceBufferLength = Object.keys(curPKT[0].data[0]).length;
+
+                // window.clientBuffer = clientBuffer;
+
+
+                var clientBufferIndex = 0, curPKTIndex = 0;
+                var sourceBufferIndex = 0;
+                while (clientBufferIndex != this.clientBufferSize && curPKTIndex < lengthOfPKT) {
+
+                    clientBuffer[clientBufferIndex] = curPKT[curPKTIndex].data[0][sourceBufferIndex];
+                    sourceBufferIndex++;
+
+                    if (sourceBufferIndex === sourceBufferLength) {
+                        curPKTIndex++;
+                        sourceBufferIndex = 0;
                     }
+                    clientBufferIndex++;
+
                 }
 
-                
+
+                for (var clientBufferIndex = 0; clientBufferIndex < this.clientBufferSize; ++clientBufferIndex) {
+                    outputData[0][clientBufferIndex] = clientBuffer[clientBufferIndex];
+                    outputData[1][clientBufferIndex] = clientBuffer[clientBufferIndex];
+                }
+
                 audioDataJSON.splice(0, curPKT.length);
+
             }
-
-
 
             if (audioDataJSON.length === 0) {
                 this.stop();
                 this.playButton.disabled = true;
-
             }
-
-            console.log(this.audioCtx.currentTime + " time:" + ((new Date()).getTime() - time));
+            // console.log(this.audioCtx.currentTime + " time:" + ((new Date()).getTime() - time));
         }
     };
 
@@ -132,7 +149,7 @@
         this.suspended = true;
     };
 
-    var bufferSize = 4096;
+    var bufferSize = 4096 * 2;
     var outputChannels = 2;
     var inputChannels = 1;
 
@@ -142,6 +159,7 @@
     audioPlayer.audioCtx = new AudioContext();
     audioPlayer.bufferSource = audioPlayer.audioCtx.createBufferSource();
     audioPlayer.audioProcessorNode = audioPlayer.audioCtx.createScriptProcessor(bufferSize, inputChannels, outputChannels);
+    audioPlayer.clientBufferSize = bufferSize;
     audioPlayer.audioProcessorNode.addEventListener('audioprocess', function (audioEvent) { audioPlayer.processAudio(audioEvent) });
 
     audioPlayer.playButton = document.getElementById('play');
