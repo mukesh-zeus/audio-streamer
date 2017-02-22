@@ -29,17 +29,17 @@
             var chunkBuffer = new Array(oldThis.inputChannels);
             for (var channelIndex = 0; channelIndex < oldThis.inputChannels; ++channelIndex) {
 
+                chunkBuffer[channelIndex]  = [];
                 var inputBuffer = e.inputBuffer.getChannelData(channelIndex);
                 var outputBuffer = e.outputBuffer.getChannelData(channelIndex);
 
                 for (var i = 0; i < inputBuffer.length; i++) {
                     outputBuffer[i] = inputBuffer[i];
-                }
-
-                chunkBuffer[channelIndex] = JSON.parse(JSON.stringify(outputBuffer));
+                    chunkBuffer[channelIndex][i] = inputBuffer[i]; 
+                }               
             }
 
-            oldThis.createJson(chunkBuffer, Date.now());
+            oldThis.addChunk(chunkBuffer, Date.now());
         }
 
     }
@@ -83,13 +83,10 @@
 
     //========================================utility functions========================================
 
-    AudioRecorder.prototype.createJson = function (chunkBuffer, timeStamp) {
+    AudioRecorder.prototype.addChunk = function (chunkBuffer, timeStamp) {
         item = {};
         item['timeStamp'] = timeStamp;
-        item['data'] = {};
-        for (var i = 0; i < this.inputChannels; ++i)
-            item['data'][i] = chunkBuffer[i];
-
+        item['data'] = chunkBuffer;       
         this.outputData[this.lastOutputDataIndex++] = item;
     }
 
