@@ -4,12 +4,11 @@
     var AudioPlayer = function () {
 
         var audioDataJSON;
-
         this.streamStarted = false;
         this.suspended = false;
         this.playingBaseNTP;
         this.firstPacketNTP;
-        this.clientBufferSize;
+        this.clientSampleFrames;
 
         this.audioCtx;
         // Buffer source for audio context
@@ -32,7 +31,7 @@
     AudioPlayer.prototype.start = function (event) {
         var _this = this;
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', 'resources/raw-data/voice-sample.json', true);
+        xhr.open('GET', 'resources/raw-data/voice-sample3.json', true);
         xhr.responseType = 'json';
         xhr.send();
 
@@ -42,7 +41,8 @@
 
             console.log('got-stream');
             window.audioDataJSON = xhr.response;
-            setTimeout(_this.playButton.click(), 100);
+            // setTimeout(_this.playButton.click(), 100)
+            _this.play();
         }
 
     };
@@ -81,58 +81,58 @@
         // var time = (new Date()).getTime();
 
         if (audioDataJSON.length > 0) {
+            //console.log('audio processing');
+            var outputBuffer, /*diff,*/ jsonDataLength,/* curPKT = [],*/ outputData = [];
 
-            var outputBuffer, diff, jsonDataLength, curPKT = [], outputData = [];
+
 
             outputBuffer = audioProcessingEvent.outputBuffer;// same as buffer in decodeAudioData
-            diff = Date.now() - this.playingBaseNTP;
+            // diff = Date.now() - this.playingBaseNTP;
             jsonDataLength = audioDataJSON.length;
-            curPKT = [];
-            // window.curPKT = curPKT;
-            for (var i = 0; i < jsonDataLength; ++i) {
-                if (audioDataJSON[i].timeStamp > this.firstPacketNTP + diff) {
-                    break;
-                }
-                curPKT.push(audioDataJSON[i]);
-            }
+
+
 
             outputData[0] = outputBuffer.getChannelData(0);
             outputData[1] = outputBuffer.getChannelData(1);
 
-            if (curPKT.length > 0) {
 
-                var lengthOfPKT, sourceBufferLength, clientBuffer = [];
-                // window.clientBuffer = clientBuffer;
+            var /*lengthOfPKT,*/ sourceBufferLength, clientBuffer = [];
 
-                lengthOfPKT = curPKT.length
-                sourceBufferLength = Object.keys(curPKT[0].data[0]).length;
+            // lengthOfPKT = curPKT.length
+            // sourceBufferLength = Object.keys(curPKT[0].data[0]).length;
+            sourceBufferLength = curPKT[0].data[0].length;
 
-                var clientBufferIndex = 0, curPKTIndex = 0, sourceBufferIndex = 0;
-                while (clientBufferIndex != this.clientBufferSize && curPKTIndex < lengthOfPKT) {
+            // window.clientBuffer = clientBuffer;
 
-                    clientBuffer[clientBufferIndex] = curPKT[curPKTIndex].data[0][sourceBufferIndex];
-                    sourceBufferIndex++;
 
-                    if (sourceBufferIndex === sourceBufferLength) {
-                        curPKTIndex++;
-                        sourceBufferIndex = 0;
-                    }
-                    clientBufferIndex++;
+            var clientBufferIndex = 0, jsonDataIndex = 0;
+            var sourceBufferIndex = 0;
+            while (clientBufferIndex != this.clientSampleFrames && jsonDataIndex < jsonDataLength) {
 
+                clientBuffer[clientBufferIndex] = audioDataJSON[jsonDataIndex].data[0][sourceBufferIndex];
+                sourceBufferIndex++;
+
+                if (sourceBufferIndex === sourceBufferLength) {
+                    jsonDataIndex++;
+                    sourceBufferIndex = 0;
                 }
-
-                for (var clientBufferIndex = 0; clientBufferIndex < this.clientBufferSize; ++clientBufferIndex) {
-                    outputData[0][clientBufferIndex] = clientBuffer[clientBufferIndex];
-                    outputData[1][clientBufferIndex] = clientBuffer[clientBufferIndex];
-                }
-
-                audioDataJSON.splice(0, curPKT.length);
+                clientBufferIndex++;
 
             }
+
+            for (var clientBufferIndex = 0; clientBufferIndex < this.clientSampleFrames; ++clientBufferIndex) {
+                outputData[0][clientBufferIndex] = clientBuffer[clientBufferIndex];
+                outputData[1][clientBufferIndex] = clientBuffer[clientBufferIndex];
+            }
+
+            // audioDataJSON.splice(0, curPKT.length);
+
+
 
             if (audioDataJSON.length === 0) {
                 this.stop();
                 this.playButton.disabled = true;
+                console.log((Date.now() - this.playingBaseNTP) / 1000);
             }
             // console.log(this.audioCtx.currentTime + " time:" + ((new Date()).getTime() - time));
         }
@@ -145,7 +145,7 @@
         this.suspended = true;
     };
 
-    var bufferSize = 4096 * 2;
+    var sampleFrames = 16384;
     var outputChannels = 2;
     var inputChannels = 1;
 
@@ -154,12 +154,12 @@
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     audioPlayer.audioCtx = new AudioContext();
     audioPlayer.bufferSource = audioPlayer.audioCtx.createBufferSource();
-    audioPlayer.audioProcessorNode = audioPlayer.audioCtx.createScriptProcessor(bufferSize, inputChannels, outputChannels);
-    audioPlayer.clientBufferSize = bufferSize;
+    audioPlayer.audioProcessorNode = audioPlayer.audioCtx.createScriptProcessor(sampleFrames, inputChannels, outputChannels);
+    audioPlayer.clientSampleFrames = sampleFrames;
     audioPlayer.audioProcessorNode.addEventListener('audioprocess', function (audioEvent) { audioPlayer.processAudio(audioEvent) });
 
     audioPlayer.playButton = document.getElementById('play');
-    audioPlayer.playButton.disabled = true;
+    audioPlayer.playButton.disabled = false;
     audioPlayer.playButton.addEventListener('click', function (event) { audioPlayer.play(event) });
 
     audioPlayer.stopButton = document.getElementById('stop');
