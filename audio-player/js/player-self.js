@@ -12,7 +12,7 @@
 
         this.audioCtx;
         // Buffer source for audio context
-        this.bufferSource;
+        // this.bufferSource;
         // A ScriptProcessor node which processes audio data
         this.audioProcessorNode;
         this.count = 0;
@@ -40,35 +40,24 @@
             _this.playButton.disabled = false;
 
             console.log('got-stream');
-            window.audioDataJSON = xhr.response;
-            // setTimeout(_this.playButton.click(), 100)
-            _this.play();
+            // window.audioDataJSON = xhr.response;
+            setTimeout(_this.playButton.click(), 500);
+            // _this.play();
         }
 
     };
 
     AudioPlayer.prototype.play = function (event) {
-        var audioDataJSON = this.getAudioData();
+
         this.playingBaseNTP = Date.now();
-        this.firstPacketNTP = audioDataJSON[0].timeStamp;
+
 
         // audioCtx.destination is the rendering device
-        this.bufferSource.connect(this.audioProcessorNode);
+        // this.bufferSource.connect(this.audioProcessorNode);
         this.audioProcessorNode.connect(this.audioCtx.destination);
 
         this.stopButton.disabled = false;
         this.playButton.disabled = true;
-
-        if (this.suspended) {
-            this.audioCtx.resume();
-            this.suspended = false;
-            return true;
-        }
-
-        if (!this.streamStarted) {
-            this.bufferSource.start();
-            this.streamStarted = true;
-        }
 
         console.log('Sample Rate ' + this.audioCtx.sampleRate);
 
@@ -80,71 +69,58 @@
 
         // var time = (new Date()).getTime();
 
-        if (audioDataJSON.length > 0) {
-            //console.log('audio processing');
-            var outputBuffer, /*diff,*/ jsonDataLength,/* curPKT = [],*/ outputData = [];
+        var outputBuffer, jsonDataLength;
 
 
+        outputBuffer = audioProcessingEvent.outputBuffer; // same as buffer in decodeAudioData
+        jsonDataLength = audioDataJSON.length;
 
-            outputBuffer = audioProcessingEvent.outputBuffer;// same as buffer in decodeAudioData
-            // diff = Date.now() - this.playingBaseNTP;
-            jsonDataLength = audioDataJSON.length;
+        var sourceBufferLength;
+        sourceBufferLength = audioDataJSON[0].data[0].length;
 
-
-
-            outputData[0] = outputBuffer.getChannelData(0);
-            outputData[1] = outputBuffer.getChannelData(1);
-
-
-            var /*lengthOfPKT,*/ sourceBufferLength, clientBuffer = [];
-
-            // lengthOfPKT = curPKT.length
-            // sourceBufferLength = Object.keys(curPKT[0].data[0]).length;
-            sourceBufferLength = curPKT[0].data[0].length;
-
-            // window.clientBuffer = clientBuffer;
-
-
-            var clientBufferIndex = 0, jsonDataIndex = 0;
-            var sourceBufferIndex = 0;
-            while (clientBufferIndex != this.clientSampleFrames && jsonDataIndex < jsonDataLength) {
-
-                clientBuffer[clientBufferIndex] = audioDataJSON[jsonDataIndex].data[0][sourceBufferIndex];
-                sourceBufferIndex++;
-
-                if (sourceBufferIndex === sourceBufferLength) {
-                    jsonDataIndex++;
-                    sourceBufferIndex = 0;
-                }
-                clientBufferIndex++;
-
-            }
-
-            for (var clientBufferIndex = 0; clientBufferIndex < this.clientSampleFrames; ++clientBufferIndex) {
-                outputData[0][clientBufferIndex] = clientBuffer[clientBufferIndex];
-                outputData[1][clientBufferIndex] = clientBuffer[clientBufferIndex];
-            }
-
-            // audioDataJSON.splice(0, curPKT.length);
-
-
-
-            if (audioDataJSON.length === 0) {
-                this.stop();
-                this.playButton.disabled = true;
-                console.log((Date.now() - this.playingBaseNTP) / 1000);
-            }
-            // console.log(this.audioCtx.currentTime + " time:" + ((new Date()).getTime() - time));
+        var outputData = [];
+        outputData[0] = outputBuffer.getChannelData(0);
+        outputData[1] = outputBuffer.getChannelData(1);
+        for (var clientBufferIndex = 0; clientBufferIndex < this.clientSampleFrames; ++clientBufferIndex) {
+            outputData[0][clientBufferIndex] = 0;
+            outputData[1][clientBufferIndex] = 0;
         }
+
+        if (currentPktPos === jsonDataLength) {
+            this.stop();
+            this.playButton.disabled = true;
+            console.log((Date.now() - this.playingBaseNTP) / 1000);
+        }
+
+        var clientBufferIndex = 0, sourceBufferIndex = 0;
+        while (clientBufferIndex != this.clientSampleFrames && currentPktPos < jsonDataLength) {
+
+            // clientBuffer[clientBufferIndex] = audioDataJSON[currentPktPos].data[0][sourceBufferIndex];
+            var frame = audioDataJSON[currentPktPos].data[0][sourceBufferIndex];
+            outputData[0][clientBufferIndex] = frame;
+            outputData[1][clientBufferIndex] = frame;
+            sourceBufferIndex++;
+
+            if (sourceBufferIndex === sourceBufferLength) {
+                currentPktPos++;
+                console.log('currPKTPOS ' + currentPktPos + ' jsonDataLength ' + jsonDataLength);
+                sourceBufferIndex = 0;
+            }
+            clientBufferIndex++;
+        }
+
+        // console.log(this.audioCtx.currentTime + " time:" + ((new Date()).getTime() - time));
     };
 
     AudioPlayer.prototype.stop = function (event) {
-        this.audioCtx.suspend();
+
+        this.audioProcessorNode.disconnect(this.audioCtx.destination);
         this.playButton.disabled = false;
         this.stopButton.disabled = true;
         this.suspended = true;
     };
 
+    var currentPktPos = 0;
     var sampleFrames = 16384;
     var outputChannels = 2;
     var inputChannels = 1;
@@ -153,7 +129,7 @@
 
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     audioPlayer.audioCtx = new AudioContext();
-    audioPlayer.bufferSource = audioPlayer.audioCtx.createBufferSource();
+    // audioPlayer.bufferSource = audioPlayer.audioCtx.createBufferSource();
     audioPlayer.audioProcessorNode = audioPlayer.audioCtx.createScriptProcessor(sampleFrames, inputChannels, outputChannels);
     audioPlayer.clientSampleFrames = sampleFrames;
     audioPlayer.audioProcessorNode.addEventListener('audioprocess', function (audioEvent) { audioPlayer.processAudio(audioEvent) });
