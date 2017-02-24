@@ -102,7 +102,7 @@
         var a = document.createElement("a");
         var file = new Blob([jsonObject], { type: 'text/json' });
         a.href = URL.createObjectURL(file);
-        a.download = 'onechannel.json';
+        a.download = 'voice-sample.json';
         a.click();
     }
 
