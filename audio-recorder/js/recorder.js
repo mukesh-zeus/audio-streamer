@@ -1,9 +1,13 @@
 ﻿(function () {
     var AudioRecorder = function () {
 
+        /*
+        
+        
+         */
         //variable initialization
         this.recordAudioButton = document.getElementById('record'), this.stopAudioButton = document.getElementById('stop');
-        this.AudioContext = null, this.context = null, this.input = null, this.processor = null, this.source = null;
+        this.AudioContext = null, this.context = null, this.microphoneInput = null, this.audioProcessorNode = null, this.source = null;
         this.outputData = new Array(), this.timeDifference = new Array(), this.lastOutputDataIndex = 0;
 
         //channel configuration
@@ -16,15 +20,15 @@
         this.AudioContext = window.AudioContext || window.webkitAudioContext;
         this.context = new AudioContext();
 
-        this.input = this.context.createMediaStreamSource(stream);
-        this.processor = this.context.createScriptProcessor(this.buffer, this.inputChannels, this.outputChannels);
+        this.microphoneInput = this.context.createMediaStreamSource(stream);
+        this.audioProcessorNode = this.context.createScriptProcessor(this.buffer, this.inputChannels, this.outputChannels);
 
-        this.input.connect(this.processor);
-        this.processor.connect(this.context.destination);
+        this.microphoneInput.connect(this.audioProcessorNode); //microphone -> audioprocessing
+        this.audioProcessorNode.connect(this.context.destination); //audioprocessing -> destination 
 
         var oldThis = this;
 
-        this.processor.onaudioprocess = function (e) {
+        this.audioProcessorNode.onaudioprocess = function (e) {
 
             var chunkBuffer = new Array(oldThis.inputChannels);
             for (var channelIndex = 0; channelIndex < oldThis.inputChannels; ++channelIndex) {
@@ -61,11 +65,10 @@
     AudioRecorder.prototype.stopRecording = function () {
         this.stopAudioButton.disabled = true;
         this.recordAudioButton.disabled = false;
-        this.input.disconnect(this.processor);
-        this.processor.disconnect(this.context.destination);
+        this.microphoneInput.disconnect(this.audioProcessorNode);
+        this.audioProcessorNode.disconnect(this.context.destination);
         this.printFinalOutput();
         this.downloadJson();
-
     }
 
     //=====================object of recorder=========================================
