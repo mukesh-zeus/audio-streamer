@@ -27,6 +27,7 @@
         this.AudioContext = window.AudioContext || window.webkitAudioContext;
         this.context = new AudioContext();
 
+
         this.microphoneInput = this.context.createMediaStreamSource(stream);
         this.audioProcessorNode = this.context.createScriptProcessor(this.config.bufferLength, this.config.numberOfChannels, this.config.numberOfChannels);
 
