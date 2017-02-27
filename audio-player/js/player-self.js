@@ -15,7 +15,6 @@
         // this.bufferSource;
         // A ScriptProcessor node which processes audio data
         this.audioProcessorNode;
-        this.count = 0;
         this.startStreamButton;
         this.playButton;
         this.stopButton;
@@ -31,7 +30,7 @@
     AudioPlayer.prototype.start = function (event) {
         var _this = this;
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', 'resources/raw-data/voice-sample3.json', true);
+        xhr.open('GET', '../../../../raw-data/voice-sample1.json', true);
         xhr.responseType = 'json';
         xhr.send();
 
@@ -95,7 +94,6 @@
         var clientBufferIndex = 0, sourceBufferIndex = 0;
         while (clientBufferIndex != this.clientSampleFrames && currentPktPos < jsonDataLength) {
 
-            // clientBuffer[clientBufferIndex] = audioDataJSON[currentPktPos].data[0][sourceBufferIndex];
             var frame = audioDataJSON[currentPktPos].data[0][sourceBufferIndex];
             outputData[0][clientBufferIndex] = frame;
             outputData[1][clientBufferIndex] = frame;
