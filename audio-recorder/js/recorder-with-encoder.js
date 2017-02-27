@@ -1,6 +1,5 @@
 (function(){
     var AudioRecorder = function(){
-
         //configuration
         var config = {};
         this.config.numberOfChannels = 1;
