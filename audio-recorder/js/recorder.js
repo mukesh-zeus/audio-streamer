@@ -1,10 +1,6 @@
 ﻿(function () {
     var AudioRecorder = function () {
 
-        /*
-        
-        
-         */
         //variable initialization
         this.recordAudioButton = document.getElementById('record'), this.stopAudioButton = document.getElementById('stop');
         this.AudioContext = null, this.context = null, this.microphoneInput = null, this.audioProcessorNode = null, this.source = null;
