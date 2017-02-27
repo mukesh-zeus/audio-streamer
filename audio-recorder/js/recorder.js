@@ -1,10 +1,6 @@
 ﻿(function () {
     var AudioRecorder = function () {
 
-        /*
-        
-        
-         */
         //variable initialization
         this.recordAudioButton = document.getElementById('record'), this.stopAudioButton = document.getElementById('stop');
         this.AudioContext = null, this.context = null, this.microphoneInput = null, this.audioProcessorNode = null, this.source = null;
@@ -102,7 +98,7 @@
         var a = document.createElement("a");
         var file = new Blob([jsonObject], { type: 'text/json' });
         a.href = URL.createObjectURL(file);
-        a.download = 'onechannel.json';
+        a.download = 'voice-sample.json';
         a.click();
     }
 
