@@ -55,6 +55,8 @@
         this.stopAudioButton.disabled = false;
         //get stream from microphone
         navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(recorder.record.bind(this)).catch(recorder.error);
+
+        
     }
 
     //stop recording
