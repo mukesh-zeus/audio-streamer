@@ -11,8 +11,6 @@
         this.clientSampleFrames;
 
         this.audioCtx;
-        // Buffer source for audio context
-        // this.bufferSource;
         // A ScriptProcessor node which processes audio data
         this.audioProcessorNode;
         this.startStreamButton;
@@ -28,6 +26,7 @@
     };
 
     AudioPlayer.prototype.start = function (event) {
+        decoderWorker.postMessage('Hello World');
         var _this = this;
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '../../../../raw-data/voice-sample1.json', true);
@@ -101,7 +100,7 @@
 
             if (sourceBufferIndex === sourceBufferLength) {
                 currentPktPos++;
-                console.log('currPKTPOS ' + currentPktPos + ' jsonDataLength ' + jsonDataLength);
+                // console.log('currPKTPOS ' + currentPktPos + ' jsonDataLength ' + jsonDataLength);
                 sourceBufferIndex = 0;
             }
             clientBufferIndex++;
@@ -117,6 +116,15 @@
         this.stopButton.disabled = true;
         this.suspended = true;
     };
+
+
+    // worker:
+    var decoderWorker = new Worker('js/worker/decoder.js');
+    decoderWorker.addEventListener('message', function (e) {
+        console.log('Worker said: ', e.data);
+    });
+
+    
 
     var currentPktPos = 0;
     var sampleFrames = 16384;
